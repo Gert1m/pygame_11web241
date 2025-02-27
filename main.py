@@ -1,39 +1,57 @@
-from sys import flags
-
 import pygame
 import asyncio
 
+from handlers.key_handlers import KeyBoard
+
 pygame.init()
-
-x, y = (640, 360)  # лучшее соотношение сторон для 2д графики
 pygame.display.set_caption("Game name here we go")
-screen = pygame.display.set_mode((x * 2, y * 2), flags=32)  # flags=32 убрать рамки экрана(fullscreen)
 
 
-def start_game(*, isPlaying: bool, fps: int) -> None:
+class GameView:
     """
-    Функция с которой программа берёт своё начало и отлавливает все действия от пользователя.
-    :param isPlaying: Запущена программа или нет.
-    :param fps: С какой частотой обрабатывать информацию (кадр/с).
-    :return: Окно игры
+    Класс обработки игрового пространства.
     """
-    while isPlaying:
-        screen.fill((0, 0, 0))
-        pygame.display.update()
 
-        # обработка нажатий
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_f]:
-            screen.fill((255, 255, 255))
-            pygame.display.update()
+    def __init__(self, x, y):
+        self.screen = pygame.display.set_mode((x, y), flags=0)  # flags=32 убрать рамки экрана(fullscreen)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                isPlaying = False
-                pygame.quit()
+        # словарь изображений
+        self.img_dict = {
+            "bg": pygame.image.load("res/img/bg.png").convert_alpha()
+        }
 
-        pygame.time.delay(1000 // fps)
+        # изменение размеров изображений
+        self.img_dict["bg"] = pygame.transform.scale(self.img_dict["bg"], (x, y))
+
+        self.keyboard = KeyBoard(img=self.img_dict, screen=self.screen)
+
+    def start_game(self, *, isPlaying: bool, fps: int) -> None:
+        """
+        Функция с которой программа берёт своё начало и отлавливает все действия от пользователя.
+        :param isPlaying: Запущена программа или нет.
+        :param fps: С какой частотой обрабатывать информацию (кадр/с).
+        :return: Окно игры
+        """
+        while isPlaying:
+            # обработка нажатий
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_f]:  # клавиша F
+                asyncio.run(self.keyboard.f())
+
+            else:
+                self.screen.blit(self.img_dict["bg"], (0, 0))
+
+            pygame.display.update()  # обновление экрана
+            pygame.time.Clock().tick(fps)  # кадры в секунду
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:  # выход из программы
+                    isPlaying = False
+                    pygame.quit()
 
 
 if __name__ == "__main__":
-    start_game(isPlaying=True, fps=240)
+    screenRatio = 3
+
+    GameView(640 * screenRatio, 360 * screenRatio).start_game(isPlaying=True,
+                                                              fps=60)  # лучшее соотношение сторон для 2д графики
